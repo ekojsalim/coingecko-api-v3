@@ -1,4 +1,4 @@
-import https from 'https';
+import axios, { Method } from 'axios';
 import { API_ROUTES, PLATFORMS } from './Enum';
 import {
   IndexItem,
@@ -27,7 +27,6 @@ import {
   GlobalResponse,
   GlobalDefiResponse,
   Options,
-  HttpResponse,
 } from './Inteface';
 
 /**
@@ -62,59 +61,17 @@ export class CoinGeckoClient {
    * @param url the full https URL
    * @returns json content
    */
-  private async httpGet<T>(url: string) {
-    const { host, pathname, search } = new URL(url);
+   private async httpGet<T>(url: string) {
+    // const { host, pathname, search } = new URL(url);
     const options = {
-      host,
-      path: pathname + search,
-      method: 'GET',
+      url,
+      method: 'get' as Method,
       headers: {
         'Content-Type': 'application/json',
       },
-      timeout: this.options.timeout, // in ms
+      timeout: this.options.timeout ?? 0, // in ms
     };
-    const parseJson = (input: string) => {
-      try {
-        return JSON.parse(input);
-      } catch (err) {
-        return input;
-      }
-    };
-    return new Promise<HttpResponse<T | any>>((resolve, reject) => {
-      const req = https.request(options, (res) => {
-        if (res.statusCode && res.statusCode === 429) {
-          resolve({
-            statusCode: res.statusCode,
-            data: {
-              error: 'HTTP 429 - Too many request',
-            },
-            headers: res.headers as any,
-          });
-          // reject(new Error(`HTTP status code ${res.statusCode}`));
-        }
-        const body: Array<Uint8Array> = [];
-        res.on('data', (chunk) => body.push(chunk));
-        res.on('end', () => {
-          const resString = Buffer.concat(body).toString();
-          resolve({
-            statusCode: res.statusCode as number,
-            data: parseJson(resString) as T,
-            headers: res.headers as any,
-          });
-        });
-      });
-
-      req.on('error', (err) => {
-        reject(err);
-      });
-
-      req.on('timeout', () => {
-        req.destroy();
-        reject(new Error(`HTTP Request timeout after ${this.options.timeout}`));
-      });
-
-      req.end();
-    });
+    return axios.request(options)
   }
 
   /**
@@ -127,10 +84,10 @@ export class CoinGeckoClient {
     const qs = Object.entries(params).map(([key, value]) => `${key}=${value}`).join('&');
     const requestUrl = `${this.apiV3Url + this.withPathParams(action, params)}?${qs}`;
     const res = await this.httpGet<T>(requestUrl);// await this.http.get<T>(requestUrl);
-    if (res.statusCode === 429 && this.options.autoRetry) {
-      await new Promise((r) => setTimeout(r, 2000));
-      return await this.makeRequest<T>(action, params) as T;
-    }
+    // if (res.statusCode === 429 && this.options.autoRetry) {
+    //   await new Promise((r) => setTimeout(r, 2000));
+    //   return await this.makeRequest<T>(action, params) as T;
+    // }
     return res.data as T;
   }
 

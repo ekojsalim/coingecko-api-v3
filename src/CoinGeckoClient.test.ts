@@ -174,8 +174,8 @@ describe('CoinGeckoClient test', () => {
       expect(exchanges.length).toBeGreaterThan(0);
 
       expect(exchanges[0]).toEqual({
-        id: 'aave',
-        name: 'Aave',
+        id: '1bch',
+        name: '1BCH',
       });
     });
 
